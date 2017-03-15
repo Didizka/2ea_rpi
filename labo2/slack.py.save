@@ -1,0 +1,36 @@
+#Import path to check if last_ip file already exists
+import os.path
+
+#Check if last_ap file exists
+last_ip = os.path.isfile("/home/chingiz/rpi/labo2/last_ip")
+
+
+if last_ip:
+	# if file exists, read the last IP address from it
+	last_ip = open("last_ip", "r")
+	last_ip = last_ip.read()	
+	print("Last IP record found. Last issued IP address: " + last_ip)
+else:
+	# if no record can be found, add current IP address to the file and post it to Slack
+	import socket
+	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	s.connect(("gmail.com",80))
+	ip = s.getsockname()[0]
+	s.close()
+
+
+from slackclient import SlackClient
+token = "xoxp-153472905298-152766488672-153473234338-976f66418c71f82104c5a028305752ba"
+sc = SlackClient(token)
+resp = sc.api_call(
+        "chat.postMessage",
+        as_user="true",
+	channel="@chinjka",
+        text=ip
+)
+
+
+last_ip = open("last_ip", "w");
+last_ip.write(ip)
+last_ip.close
+print("IP address sent to slack. IP: " + ip) 
