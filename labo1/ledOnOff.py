@@ -4,8 +4,8 @@ import RPi.GPIO as GPIO
 import time
 
 #Define variables
-buttonPin = 17
-ledPin = 18
+buttonPin = 26
+ledPin = 20
 ledOn = False
 previous_input = 0
 
