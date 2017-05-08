@@ -3,20 +3,24 @@
 ##################################
 import RPi.GPIO as GPIO
 import time
+import os.path
+import math
 
 ##################################
 # Alarm class ####################
 ##################################
 
-class Alarm:
 
+class Alarm:
 	def __init__(self):
+		# Enable alarm
+		self.enablePin = 18
+		self.alarmEnabled = False
+		self.previous_input = 0
 		# Button
 		self.buttonPin = 26
 		# Alarm led
-		self.ledPin = 20
-		# Debounce button
-		self.previous_input = 0
+		self.ledPin = 20		
 		# Alarm states
 		self.alarmFired = False
 		self.timeStampLogged = False
@@ -63,55 +67,81 @@ class Alarm:
 			self.alarmFired = True
 			self.alarmReset = False
 			self.alarmFiredAt = self.getCurrentTimeStamp()
+			f = open('AlarmLog.txt', 'a')
+			f.write(self.alarmFiredAt + '\n')
+			f.close
+
 
 	def detectReset(self):
 		# Save the time of initial button press
 		self.pressedAt = time.time()
 		# While button is pressed, count to 5 sec, then reset the counter and the alarm
-		while not GPIO.input(self.buttonPin):
-			self.blinkRedLed()
+		while not GPIO.input(self.buttonPin) and self.alarmReset == False:
+			self.blinkRedLed()		
+			print('Alarm will be reset after: ', self.resetAfter - math.floor((time.time() - self.pressedAt)), ' sec')	
 			if not (time.time() - self.pressedAt) < self.resetAfter:
 				if not self.alarmReset:
+					print("Alarm has been reset")
 					self.reset()
 				
 
-	def reset(self):
-		print ("Alarm has been reset")
+	def reset(self):		
 		self.alarmFired = False
 		self.timeStampLogged = False
 		self.alarmReset = True
 
+	def enableAlarm(self):
+		input = not GPIO.input(self.enablePin)
+		if ((not self.previous_input) and input):		
+			self.alarmEnabled = not self.alarmEnabled
+			self.reset()
+		previous_input = input
+		time.sleep(0.1)
 		
 
 ##################################
 # Setup ##########################
 ##################################
-ALARM = Alarm()
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(ALARM.buttonPin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
-GPIO.setup(ALARM.ledPin, GPIO.OUT)
-GPIO.setup(ALARM.trigger, GPIO.OUT)
-GPIO.setup(ALARM.echo, GPIO.IN)
-# Ensure the trig pin is low
-GPIO.output(ALARM.trigger, False)
+def main():
+	try:
+		ALARM = Alarm()
+		GPIO.setmode(GPIO.BCM)
+		GPIO.setup(ALARM.buttonPin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(ALARM.enablePin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+		GPIO.setup(ALARM.ledPin, GPIO.OUT)
+		GPIO.setup(ALARM.trigger, GPIO.OUT)
+		GPIO.setup(ALARM.echo, GPIO.IN)
+		# Ensure the trig pin is low
+		GPIO.output(ALARM.trigger, False)
+		print('ok')
+
+		while True:	
+			# If no alarm was fired, measure the distance until the door is opened
+			# if it was opened, fire alarm
+			# Log timestamp of alarm
+			# blink red leds
+			ALARM.enableAlarm()
+			if ALARM.alarmEnabled == True:		
+				if ALARM.alarmFired == False:
+					ALARM.measure()		
+				else:			
+					if ALARM.timeStampLogged == False:
+						print('alarm fired at: ', ALARM.alarmFiredAt)	
+						ALARM.timeStampLogged = True
+					ALARM.blinkRedLed()
+					ALARM.detectReset()		
+			else:
+				print('Alarm disabled')
+			time.sleep(0.1)
+    
+	except KeyboardInterrupt:
+	    pass
+	finally:
+		GPIO.cleanup()
+		print('Exit program')
+
+# main segment
+if __name__ == "__main__":
+    main()
 
 
-##################################
-# Loop ###########################
-##################################
-while True:	
-	# If no alarm was fired, measure the distance until the door is opened
-	# if it was opened, fire alarm
-	# Log timestamp of alarm
-	# blink red leds
-	if ALARM.alarmFired == False:
-		ALARM.measure()		
-	else:			
-		if ALARM.timeStampLogged == False:
-			print('alarm fired at: ', ALARM.alarmFiredAt)	
-			ALARM.timeStampLogged = True
-		ALARM.blinkRedLed()
-		ALARM.detectReset()
-
-	time.sleep(0.1)
-	# print(ALARM.getCurrentSeconds())
