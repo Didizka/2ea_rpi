@@ -2,7 +2,9 @@
 # Lab4: leds controlled by mqtt 
 # 3 leds connected to pins 18, 23 and 24
 # client subscribed to topic "labo/4/basis"
-# example of pub: mosquitto_pub -t labo/4/basis -m '{"states": [true, false, false]}'
+# example of local pub: mosquitto_pub -t labo/4/basis -m '{"states": [true, false, false]}'
+# via online broker: mosquitto_pub -h broker.hivemq.com -p 1883 -t labo/4/basis -m '{"states" : [true, true, false]}'
+
 
 # Imports
 import paho.mqtt.client as mqtt
@@ -39,7 +41,6 @@ def on_message(mqttc, obj, msg):
     try:
         # payload omzetten van bytestring naar string
         p = msg.payload.decode("utf-8")
-        print(p)
         
         # json wordt verwacht json string moet omgezet worden naar een python
         #  dictonary voor verwerking
@@ -60,7 +61,10 @@ def main():
         mqttc.on_connect = on_connect
         # mqttc.on_publish = on_publish
         mqttc.on_subscribe = on_subscribe
+        # local broker
         mqttc.connect('localhost')
+        # online broker
+        # mqttc.connect('broker.hivemq.com')
         mqttc.subscribe('labo/4/basis')
         while True:
             mqttc.loop()
