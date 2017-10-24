@@ -21,7 +21,11 @@ class Labo4:
         # tuple object met pin nummers
         self.leds = (18, 23) 
         self.buttons = (27, 22)
-        self.states = [False, False] 
+        self.led1state = False
+        self.led2state = False
+        self.states = [self.led1state, self.led2state] 
+        self.previous_input1 = 0
+        self.previous_input2 = 0
 
         # Disable button
         self.disableButton = 17
@@ -39,23 +43,37 @@ class Labo4:
         if ((not self.previous_input) and input):       
             self.isDisabled = not self.isDisabled
         self.previous_input = input  
-        if self.isDisabled:
-            self.disableLeds()      
-        time.sleep(0.1)
+        # if self.isDisabled:
+            # self.disableLeds()      
+        # time.sleep(0.1)
 
 
     def disableLeds(self):
         GPIO.output(self.leds, False)
-        print('Leds are disabled')
+        # print('Leds are disabled')
 
     def stateButtonListeners(self):
-        self.states[0] = not GPIO.input(self.buttons[0])
-        self.states[1] = not GPIO.input(self.buttons[1]) 
-        topic = 'home/groundfloor/livingroom/lights/lightx'
-        payload = {"states" : [self.states[0], self.states[1]]}       
+        # self.states[0] = not GPIO.input(self.buttons[0])
+        # self.states[1] = not GPIO.input(self.buttons[1]) 
+
+        input1 = not GPIO.input(self.buttons[0])
+        if ((not self.previous_input1) and input1):       
+            self.led1state = not self.led1state
+        self.previous_input1 = input1 
+        # time.sleep(0.1)
+
+        input2 = not GPIO.input(self.buttons[1])
+        if ((not self.previous_input2) and input2):       
+            self.led2state = not self.led2state
+        self.previous_input2 = input2 
+        # time.sleep(0.1)
+
+
+        topic = 'home/groundfloor/kitchen/lights/lightx'
+        payload = {"states" : [self.led1state, self.led2state], "master" : self.isDisabled}       
         # print(topic)
         # print(payload)
-        publish.single(str(topic), json.dumps(payload), hostname="broker.hivemq.com")
+        publish.single(str(topic), json.dumps(payload), hostname="172.16.229.39")
 
     # set state van de leds met als parameters 2 tuples
     # tuple van pin nummers en een met bools van de state
@@ -75,7 +93,7 @@ class Labo4:
 
     # calback voor het verwerken van de berichten
     def on_message(self, mqttc, obj, msg):
-        print("Message Recieved")
+        # print("Message Recieved")
         try:
             # payload omzetten van bytestring naar string
             p = msg.payload.decode("utf-8")
@@ -84,6 +102,9 @@ class Labo4:
             #  dictonary voor verwerking
             x = json.loads(p)
             self.set_leds(self.leds, x["states"])
+            master = x["master"]
+            if master:
+                self.disableLeds()
             return
         except Exception as e:
             print(e)
@@ -97,8 +118,9 @@ def main():
         labo4 = Labo4()    
         
         mqttc = mqtt.Client()
-        mqttc.connect('broker.hivemq.com')
-        mqttc.subscribe('home/groundfloor/kitchen/lights/lightx')
+        # mqttc.connect('broker.hivemq.com')
+        mqttc.connect('172.16.229.39')
+        mqttc.subscribe('home/groundfloor/livingroom/lights/lightx')
         
 
         mqttc.on_message = labo4.on_message

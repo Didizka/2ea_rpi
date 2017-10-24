@@ -53,9 +53,10 @@ class Labo4:
         self.states[1] = not GPIO.input(self.buttons[1]) 
         topic = 'home/groundfloor/livingroom/lights/lightx'
         payload = {"states" : [self.states[0], self.states[1]]}       
-        # print(topic)
-        # print(payload)
-        publish.single(str(topic), json.dumps(payload), hostname="broker.hivemq.com")
+        print(topic)
+        print(payload)
+        # publish.single(str(topic), json.dumps(payload), hostname="broker.hivemq.com")
+        publish.single(str(topic), json.dumps(payload))
 
     # set state van de leds met als parameters 2 tuples
     # tuple van pin nummers en een met bools van de state
@@ -97,8 +98,9 @@ def main():
         labo4 = Labo4()    
         
         mqttc = mqtt.Client()
-        mqttc.connect('broker.hivemq.com')
-        mqttc.subscribe('home/groundfloor/kitchen/lights/lightx')
+        # mqttc.connect('broker.hivemq.com')
+        mqttc.connect('localhost')
+        mqttc.subscribe('home/groundfloor/livingroom/lights/lightx')
         
 
         mqttc.on_message = labo4.on_message

@@ -14,7 +14,7 @@ previous_input = 0
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(buttonPin, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 GPIO.setup(ledPin, GPIO.OUT)
-pwm = GPIO.PWM(18, 100)
+pwm = GPIO.PWM(ledPin, 100)
 currentPwm = 0
 pwm.start(0)
 
